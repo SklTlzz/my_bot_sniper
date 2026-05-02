@@ -40,7 +40,7 @@ class BinanceWS:
                             data = json.loads(msg.data)['k']
                             kline = WsCandle(
                                 start_time=int(data["t"]),
-                                volume=float(data["v"]),
+                                volume=float(data["q"]),
                                 close_price=float(data["c"]),
                                 open_price=float(data["o"])
                             )

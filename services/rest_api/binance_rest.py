@@ -86,7 +86,7 @@ class BinanceRest:
                             highPrice=float(item[2]),
                             lowPrice=float(item[3]),
                             closePrice=float(item[4]),
-                            volume=float(item[5])
+                            volume=float(item[7])
                         ) for item in data
                     ]
                 else:

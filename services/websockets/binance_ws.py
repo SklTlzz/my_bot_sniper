@@ -4,6 +4,8 @@ import logging
 import json
 from models.models import WsCandle
 
+from config import PROXY
+
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +18,7 @@ class BinanceWS:
         self._session = session
         
         self.__proxy = {
-            'http': 'http://n6KPSuii:FtigEyZZ@138.249.96.10:64698',
-            'https': 'http://n6KPSuii:FtigEyZZ@138.249.96.10:64698',
+            'http': PROXY,
         }
 
     async def listen_klines(self, symbol: str, interval: str, average_volume: float, move_threshold: float):

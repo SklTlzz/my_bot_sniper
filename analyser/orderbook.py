@@ -1,9 +1,6 @@
 import numpy as np
-import logging
 
 from models.models import RestOrderBook
-
-logger = logging.getLogger(__name__)
 
 
 class Analyser:
@@ -14,6 +11,7 @@ class Analyser:
         self._data_bids = data.bids
 
     def prepare_data(self, volume_threshold: float):
+        """Метод для получения плотностей в стакане"""
         asks = np.array(self._data_asks, dtype=np.float64)
         bids = np.array(self._data_bids, dtype=np.float64)
 

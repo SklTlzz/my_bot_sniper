@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime, timezone, timedelta
 
 from models.models import RestOrderBook, RestCandle
+from config import PROXY
 
 
 def msk_time_converter(*args):
@@ -28,8 +29,7 @@ class BinanceRest:
         self._session = session
         
         self.__proxy = {
-            'http': 'http://n6KPSuii:FtigEyZZ@138.249.96.10:64698',
-            'https': 'http://n6KPSuii:FtigEyZZ@138.249.96.10:64698',
+            'http': PROXY,
         }
 
     async def get_spot_order_book(self, symbol: str, limit: int = 1000) -> RestOrderBook:

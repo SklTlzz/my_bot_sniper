@@ -5,3 +5,5 @@ import os
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+PROXY = os.getenv("PROXY")
+BOSS_ID = os.getenv("BOSS_ID")

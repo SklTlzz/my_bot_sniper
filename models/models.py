@@ -11,10 +11,10 @@ class RestOrderBook:
 @dataclass
 class RestCandle:
     """Единая модель свечек для REST запросов. Приводит данные c любой биржи к общему формату для анализа объема и изменений цены"""
-    openPrice: float
-    highPrice: float
-    lowPrice: float
-    closePrice: float
+    open_price: float
+    high_price: float
+    low_price: float
+    close_price: float
     volume: float
 
 

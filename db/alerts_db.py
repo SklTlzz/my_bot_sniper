@@ -48,12 +48,19 @@ class AlertsDatabase:
         
         logger.info(f"Из users_alerts успешно удалены все алерты пользователя c tg_id: {tg_id}")
 
+    async def delete_all_alerts(self):
+        """Удаляет все алерты из таблицы users_alerts"""
+        await self.db.execute("""DELETE FROM users_alerts""")
+        await self.db.commit()
+        
+        logger.info(f"Из users_alerts успешно удалены все алерты")
+
     async def get_all_user_alerts(self, tg_id: int) -> list:
         """Получает все алерты пользователя из таблицы users_alerts"""
         async with self.db.execute("""SELECT exchange, token FROM users_alerts WHERE tg_id = ?""", (tg_id, )) as cursor:
             alerts_list = await cursor.fetchall()
             
-            logger.info(f"Получили все отслеживания пользователя {tg_id} из таблицы users_alerts. Всего отслеживаний: {len(alerts_list)}")
+            # logger.info(f"Получили все отслеживания пользователя {tg_id} из таблицы users_alerts. Всего отслеживаний: {len(alerts_list)}")
 
             return alerts_list
 
@@ -62,7 +69,7 @@ class AlertsDatabase:
         async with self.db.execute("""SELECT tg_id, exchange, token FROM users_alerts""") as cursor:
             alerts_list = await cursor.fetchall()
             
-            logger.info(f"Получили все отслеживания из таблицы users_alerts. Всего отслеживаний: {len(alerts_list)}")
+            # logger.info(f"Получили все отслеживания из таблицы users_alerts. Всего отслеживаний: {len(alerts_list)}")
 
             return alerts_list
 

@@ -3,8 +3,9 @@ import aiohttp
 import logging
 import json
 from models.models import WsCandle
+from aiogram import Bot
 
-from config import PROXY
+from config import PROXY, COEFFICIENT_VOLUME_THRESHOLD
 
 
 logger = logging.getLogger(__name__)
@@ -14,14 +15,18 @@ class BinanceWS:
 
     BASE_URL = "wss://stream.binance.com:9443/ws"
 
-    def __init__(self, session: aiohttp.ClientSession):
+    def __init__(self, session: aiohttp.ClientSession, bot: Bot):
         self._session = session
-        
+        self.bot = bot
+
         self.__proxy = {
             'http': PROXY,
         }
 
-    async def listen_klines(self, symbol: str, interval: str, average_volume: float, move_threshold: float):
+    async def send_message(self, text: str, tg_id: int):
+        await self.bot.send_message(chat_id=tg_id, text=text)
+
+    async def listen_klines(self, symbol: str, interval: str, average_volume: float, move_threshold: float, tg_id: int):
         """Слушает Websocket Streams Binance и отправляет алерты при нахождении аномалии"""
         stream_name = f"{symbol.lower()}@kline_{interval}"
         url = f"{self.BASE_URL}/{stream_name}"
@@ -30,7 +35,7 @@ class BinanceWS:
         volume_alert_sent_for_current_candle = False
         move_alert_sent_for_current_candle = False
         
-        volume_threshold = average_volume * 4.0 
+        volume_threshold = average_volume * COEFFICIENT_VOLUME_THRESHOLD
         
         while True:
             try:
@@ -49,7 +54,7 @@ class BinanceWS:
                             kline_start_time = kline.start_time
                             current_volume = kline.volume
 
-                            current_move = (abs(kline.close_price - kline.open_price) / kline.open_price) * 100
+                            current_move = ((kline.close_price - kline.open_price) / kline.open_price) * 100
                             
                             if current_candle_start_time != kline_start_time:
                                 current_candle_start_time = kline_start_time
@@ -58,22 +63,32 @@ class BinanceWS:
                                 logger.info(f"Новая свеча {interval} началась. Предохранитель по объему и движению сброшен (klines)")
 
                             if current_volume >= volume_threshold and not volume_alert_sent_for_current_candle:
-                                logger.warning(
-                                    f"АНОМАЛЬНЫЙ ОБЪЕМ! | {symbol.upper()} | "
-                                    f"Объем: {current_volume} превысил порог {volume_threshold}!"
+                                text = (
+                                    f"==============================================\n"
+                                    f"🚨 АНОМАЛЬНЫЙ ОБЪЕМ! | {symbol.upper()} | \n"
+                                    f"ℹ️ Объем: {round(current_volume, 2)} превысил порог {round(volume_threshold, 2)}!\n"
+                                    f"=============================================="
                                 )
+
+                                logger.warning((f"АНОМАЛЬНЫЙ ОБЪЕМ! | {symbol.upper()} | "
+                                    f"Объем: {round(current_volume, 2)} превысил порог {round(volume_threshold, 2)}!"))
                                 
-                                # Здесь вызываем функцию отправки сообщения в Telegram
+                                await self.send_message(text=text, tg_id=tg_id)
                                 
                                 volume_alert_sent_for_current_candle = True
 
-                            if current_move >= move_threshold and not move_alert_sent_for_current_candle:
-                                logger.warning(
-                                    f"РЕЗКОЕ ДВИЖЕНИЕ! | {symbol.upper()} | "
-                                    f"Движение: {current_move} превысило порог {move_threshold}!"
+                            if abs(current_move) >= move_threshold and not move_alert_sent_for_current_candle:
+                                text = (
+                                    f"==============================================\n"
+                                    f"🚨 РЕЗКОЕ ДВИЖЕНИЕ! | {symbol.upper()} | \n"
+                                    f"ℹ️ Движение: {round(current_move, 2)}% превысило порог {move_threshold}%!\n"
+                                    f"=============================================="
                                 )
 
-                                # Здесь вызываем функцию отправки сообщения в Telegram
+                                logger.warning((f"РЕЗКОЕ ДВИЖЕНИЕ! | {symbol.upper()} |"
+                                    f"Движение: {round(current_move, 2)}% превысило порог {move_threshold}%!"))
+
+                                await self.send_message(text=text, tg_id=tg_id)
 
                                 move_alert_sent_for_current_candle = True
                             

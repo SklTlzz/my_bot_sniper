@@ -8,12 +8,13 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from services.rest_api.binance_rest import BinanceRest
-from analyser.orderbook import Analyser
 from config import BOT_TOKEN, PROXY, BOSS_ID
 from handlers.commands import router as cmds_router
+from handlers.tracker import Tracker
 from db.database import Database
 from db.alerts_db import AlertsDatabase
+from services.rest_api.binance_rest import BinanceRest
+from services.websockets.binance_ws import BinanceWS
 
 
 def msk_time_converter(*args):
@@ -37,6 +38,7 @@ async def main():
         await database.create_table()
         await database.add_user(tg_id=BOSS_ID)
 
+        await alerts_db.delete_all_alerts()
         await alerts_db.create_table()
 
         tg_session = AiohttpSession(proxy=PROXY)
@@ -46,23 +48,14 @@ async def main():
 
         dp.include_router(cmds_router)
 
-        # async with aiohttp.ClientSession() as session:
-        #     binance = BinanceRest(session=session)
-        #     order_book = await binance.get_spot_order_book("TAOUSDT", limit=100)
+        async with aiohttp.ClientSession() as session:
+            binance_rest = BinanceRest(session=session)
+            binance_ws = BinanceWS(session=session, bot=bot)
 
-        #     if order_book:
-        #         logger.info(f"Стакан получен!")
-        #         analyser = Analyser(data=order_book)
-        #         logger.info("Анализатор успешно инициализирован!")
+            tracker = Tracker(bot=bot, alerts_db=alerts_db, binance_ws=binance_ws, binance_rest=binance_rest)
+            asyncio.create_task(tracker.wait_for_alert())
 
-        #         result = analyser.prepare_data(volume_threshold=5.0)
-
-        #         if result["asks"]:
-        #             logger.info(f"Нашли плотности на продажу: {result['asks']}")
-        #         if result["bids"]:
-        #             logger.info(f"Нашли плотности на покупку: {result['bids']}")
-
-        await dp.start_polling(bot, db=database, alerts_db=alerts_db)
+            await dp.start_polling(bot, db=database, alerts_db=alerts_db)
 
 if __name__ == "__main__":
     asyncio.run(main())

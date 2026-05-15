@@ -61,7 +61,7 @@ class BinanceRest:
             logger.error(f"Ошибка соединения с Binance (стакан): {e}")
             return None
 
-    async def get_spot_candles(self, symbol: str, interval: str, limit: int = 100) -> list[RestCandle]:
+    async def get_spot_candles(self, symbol: str, interval: str = 5, limit: int = 24) -> list[RestCandle]:
         """
             Получает свечи для указанной пары \n
                 interval: '1m', '3m', '5m', '15m', '30m', '1h' и тд \n
@@ -82,10 +82,10 @@ class BinanceRest:
                     logger.info(f"Успешно получены свечи по {symbol}; interval: {interval}; limit: {limit}")
                     return [
                         RestCandle(
-                            openPrice=float(item[1]),
-                            highPrice=float(item[2]),
-                            lowPrice=float(item[3]),
-                            closePrice=float(item[4]),
+                            open_price=float(item[1]),
+                            high_price=float(item[2]),
+                            low_price=float(item[3]),
+                            close_price=float(item[4]),
                             volume=float(item[7])
                         ) for item in data
                     ]

@@ -2,7 +2,6 @@ from aiogram import Router, Bot
 from aiogram.types import Message
 from aiogram.filters import CommandStart, Command, CommandObject
 import logging
-import aiosqlite
 
 from db.database import Database
 from config import BOSS_ID
@@ -37,11 +36,12 @@ async def cmd_help(message: Message, db: Database):
             "/start - просто приветствие\n"
             "/help - показывает доступные команды. Ну ты уже понял))\n"
             "/add - добавить монету для отслеживания. Пример заполнения:\n"
-            "       <code>/add binance - WIF</code>\n"
-            "       <code>/add binance-WIF</code>\n\n"
+            "       <code>/add binance - WIFUSDT</code>\n"
+            "       <code>/add binance-WIFUSDT</code>\n\n"
             "/del - удалить монету из отслеживания. Пример заполнения (аналогично <code>/add</code>):\n"
-            "       <code>/del binance - WIF</code>\n\n"
-            "/stopall - вырубить все уведы разом"
+            "       <code>/del binance - WIFUSDT</code>\n\n"
+            "/stopall - вырубить все уведы разом\n"
+            "/myalerts - показывает все ваши алерты"
         )
 
         await message.answer(help_text)
@@ -64,10 +64,13 @@ async def cmd_add(message: Message, db: Database, command: CommandObject, alerts
                 exchange, token = params
             
                 if exchange in available_exchanges:
-                    await alerts_db.add_alert(tg_id=user_id, exchange=exchange, token=token)
+                    if token.endswith("usdt"):
+                        await alerts_db.add_alert(tg_id=user_id, exchange=exchange, token=token)
 
-                    await message.answer(f"Добавил в отслеживание: {params}")
-                    logger.info(f"{user_id} добавил в отслеживание токен {token} на бирже {exchange}")
+                        await message.answer(f"Добавил в отслеживание: {params}")
+                        logger.info(f"{user_id} добавил в отслеживание токен {token} на бирже {exchange}")
+                    else:
+                        await message.answer(f"Добавьте usdt в любом регистре в конец токена: {token}usdt")                    
                 else:
                     await message.answer(f"Я впервые вижу такую биржу: {exchange}")
         

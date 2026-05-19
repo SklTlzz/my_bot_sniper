@@ -138,7 +138,8 @@ async def cmd_myalerts(message: Message, db: Database, alerts_db: AlertsDatabase
         alerts = await alerts_db.get_all_user_alerts(tg_id=user_id)
 
         if alerts:
-            await message.answer(f"Ваши алерты:\n\n{"\n".join([f"       {exchange} - {token}" for exchange, token in alerts])}")
+            alerts_text = "\n".join([f'     {exchange} - {token}' for exchange, token in alerts])
+            await message.answer(f"Ваши алерты:\n\n{alerts_text}")
         else:
             await message.answer("У вас сейчас нет алертов")
     else:

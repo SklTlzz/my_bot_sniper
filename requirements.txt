@@ -1,6 +1,6 @@
 numpy
 aiohttp
 aiogram
-dotenv
+python-dotenv
 aiosqlite
 aiohttp-socks

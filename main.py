@@ -13,8 +13,26 @@ from handlers.commands import router as cmds_router
 from handlers.tracker import Tracker
 from db.database import Database
 from db.alerts_db import AlertsDatabase
+
 from services.rest_api.binance_rest import BinanceRest
+from services.rest_api.bingx_rest import BingXRest
+from services.rest_api.bitget_rest import BitgetRest
+from services.rest_api.bybit_rest import BybitRest
+from services.rest_api.gate_rest import GateRest
+from services.rest_api.kraken_rest import KrakenRest
+from services.rest_api.kucoin_rest import KucoinRest
+from services.rest_api.mexc_rest import MexcRest
+from services.rest_api.okx_rest import OkxRest
+
 from services.websockets.binance_ws import BinanceWS
+from services.websockets.bingx_ws import BingXWS
+from services.websockets.bitget_ws import BitgetWS
+from services.websockets.bybit_ws import BybitWS
+from services.websockets.gate_ws import GateWS
+from services.websockets.kraken_ws import KrakenWS
+from services.websockets.kucoin_ws import KucoinWS
+from services.websockets.mexc_ws import MexcWS
+from services.websockets.okx_ws import OkxWS
 
 
 def msk_time_converter(*args):
@@ -50,9 +68,38 @@ async def main():
 
         async with aiohttp.ClientSession() as session:
             binance_rest = BinanceRest(session=session)
-            binance_ws = BinanceWS(session=session, bot=bot)
+            bingx_rest = BingXRest(session=session)
+            bitget_rest = BitgetRest(session=session)
+            bybit_rest = BybitRest(session=session)
+            gate_rest = GateRest(session=session)
+            kraken_rest = KrakenRest(session=session)
+            kucoin_rest = KucoinRest(session=session)
+            mexc_rest = MexcRest(session=session)
+            okx_rest = OkxRest(session=session)
 
-            tracker = Tracker(bot=bot, alerts_db=alerts_db, binance_ws=binance_ws, binance_rest=binance_rest)
+            binance_ws = BinanceWS(session=session, bot=bot)
+            bingx_ws = BingXWS(session=session, bot=bot)
+            bitget_ws = BitgetWS(session=session, bot=bot)
+            bybit_ws = BybitWS(session=session, bot=bot)
+            gate_ws = GateWS(session=session, bot=bot)
+            kraken_ws = KrakenWS(session=session, bot=bot)
+            kucoin_ws = KucoinWS(session=session, bot=bot)
+            mexc_ws = MexcWS(session=session, bot=bot)
+            okx_ws = OkxWS(session=session, bot=bot)
+
+            clients = {
+                "binance": {"rest": binance_rest, "ws": binance_ws},
+                "bingx": {"rest": bingx_rest, "ws": bingx_ws},
+                "bitget": {"rest": bitget_rest, "ws": bitget_ws},
+                "bybit": {"rest": bybit_rest, "ws": bybit_ws},
+                "gate": {"rest": gate_rest, "ws": gate_ws},
+                "kraken": {"rest": kraken_rest, "ws": kraken_ws},
+                "kucoin": {"rest": kucoin_rest, "ws": kucoin_ws},
+                "mexc": {"rest": mexc_rest, "ws": mexc_ws},
+                "okx": {"rest": okx_rest, "ws": okx_ws},
+            }
+
+            tracker = Tracker(bot=bot, alerts_db=alerts_db, clients=clients)
             asyncio.create_task(tracker.wait_for_alert())
 
             await dp.start_polling(bot, db=database, alerts_db=alerts_db)

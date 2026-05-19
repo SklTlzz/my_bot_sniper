@@ -60,7 +60,7 @@ class BinanceWS:
                                 current_candle_start_time = kline_start_time
                                 volume_alert_sent_for_current_candle = False
                                 move_alert_sent_for_current_candle = False
-                                logger.info(f"Новая свеча {interval} началась. Предохранитель по объему и движению сброшен (klines)")
+                                logger.info(f"Новая свеча {interval} началась (Binance). Предохранитель по объему и движению сброшен (klines)")
 
                             if current_volume >= volume_threshold and not volume_alert_sent_for_current_candle:
                                 text = (

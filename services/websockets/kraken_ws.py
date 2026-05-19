@@ -9,10 +9,10 @@ from models.models import WsCandle
 
 logger = logging.getLogger(__name__)
 
-class BitgetWS:
-    """Данный класс отвечает за Websockets на Bitget"""
+class KrakenWS:
+    """Данный класс отвечает за Websockets на Kraken"""
 
-    BASE_URL = "wss://ws.bitget.com/v2/spot/v1/stream"
+    BASE_URL = "wss://ws.kraken.com/v2"
 
     def __init__(self, session: aiohttp.ClientSession, bot: Bot):
         self._session = session
@@ -25,15 +25,16 @@ class BitgetWS:
         await self.bot.send_message(chat_id=tg_id, text=text)
 
     async def listen_klines(self, symbol: str, interval: str, average_volume: float, move_threshold: float, tg_id: int):
-        """Слушает Websocket Bitget и отправляет алерты при нахождении аномалии"""
+        """Слушает Websocket Kraken и отправляет алерты при нахождении аномалии"""
         url = self.BASE_URL
-        formatted_symbol = symbol.upper()
+        
+        formatted_symbol = symbol.upper()[:-4] + "/" + symbol.upper()[-4:]
         
         ws_interval_map = {
-            "1m": "candle1m", "5m": "candle5m", "15m": "candle15m", 
-            "30m": "candle30m", "1h": "candle1H", "4h": "candle4H", "1d": "candle1D"
+            "1m": 1, "5m": 5, "15m": 15, 
+            "30m": 30, "1h": 60, "4h": 240, "1d": 1440
         }
-        bitget_channel = ws_interval_map.get(interval, "candle5m")
+        kraken_interval = ws_interval_map.get(interval, 5)
         
         current_candle_start_time = None
         volume_alert_sent_for_current_candle = False
@@ -41,39 +42,44 @@ class BitgetWS:
         volume_threshold = average_volume * COEFFICIENT_VOLUME_THRESHOLD 
         
         subscribe_payload = {
-            "op": "subscribe",
-            "args": [{
-                "instType": "SPOT",
-                "channel": bitget_channel,
-                "instId": formatted_symbol
-            }]
+            "method": "subscribe",
+            "params": {
+                "channel": "ohlc",
+                "symbol": [formatted_symbol],
+                "interval": kraken_interval
+            }
         }
 
         while True:
             try:
-                logger.info(f"Подключаемся к BitgetWS {interval} ({bitget_channel}) для {formatted_symbol}")
-                async with self._session.ws_connect(url=url, heartbeat=30, proxy=self.__proxy["http"]) as ws:
+                logger.info(f"Подключаемся к KrakenWS {interval} для {formatted_symbol}")
+                async with self._session.ws_connect(url=url, heartbeat=25, proxy=self.__proxy["http"]) as ws:
                     
                     await ws.send_json(subscribe_payload)
 
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:
-                            if msg.data == "pong":
-                                continue
-
                             response = json.loads(msg.data)
                             
-                            if response.get("action") == "update" and "data" in response:
+                            if response.get("channel") != "ohlc" or response.get("type") != "update":
+                                continue
+
+                            if "data" in response and len(response["data"]) > 0:
                                 data = response["data"][0]
                                 
+                                close_price = float(data.get("close", 0))
+                                base_volume = float(data.get("volume", 0))
+                                quote_volume = base_volume * close_price
+                                
+                                kline_start_time = data.get("timestamp")
+                                
                                 kline = WsCandle(
-                                    start_time=int(data[0]),
-                                    volume=float(data[7]), 
-                                    close_price=float(data[4]),
-                                    open_price=float(data[1])
+                                    start_time=0,
+                                    volume=quote_volume, 
+                                    close_price=close_price,
+                                    open_price=float(data.get("open", 0))
                                 )
                                 
-                                kline_start_time = kline.start_time
                                 current_volume = kline.volume
                                 current_move = ((kline.close_price - kline.open_price) / kline.open_price) * 100
                                 
@@ -81,16 +87,16 @@ class BitgetWS:
                                     current_candle_start_time = kline_start_time
                                     volume_alert_sent_for_current_candle = False
                                     move_alert_sent_for_current_candle = False
-                                    logger.info(f"Новая свеча {interval} началась (Bitget). Предохранитель по объему и движению сброшен (klines)")
+                                    logger.info(f"Новая свеча {interval} началась (Kraken). Предохранитель по объему и движению сброшен (klines)")
 
                                 if current_volume >= volume_threshold and not volume_alert_sent_for_current_candle:
                                     text = (
                                         f"==============================================\n"
-                                        f"🚨 АНОМАЛЬНЫЙ ОБЪЕМ! | {formatted_symbol} | Bitget\n"
+                                        f"🚨 АНОМАЛЬНЫЙ ОБЪЕМ! | {formatted_symbol} | Kraken\n"
                                         f"ℹ️ Объем: {round(current_volume, 2)} превысил порог {round(volume_threshold, 2)}!\n"
                                         f"=============================================="
                                     )
-                                    logger.warning((f"АНОМАЛЬНЫЙ ОБЪЕМ! | {formatted_symbol} | Bitget | "
+                                    logger.warning((f"АНОМАЛЬНЫЙ ОБЪЕМ! | {formatted_symbol} | Kraken | "
                                         f"Объем: {round(current_volume, 2)} превысил порог {round(volume_threshold, 2)}!"))
                                     await self.send_message(text=text, tg_id=tg_id)
                                     volume_alert_sent_for_current_candle = True
@@ -98,19 +104,19 @@ class BitgetWS:
                                 if abs(current_move) >= move_threshold and not move_alert_sent_for_current_candle:
                                     text = (
                                         f"==============================================\n"
-                                        f"🚨 РЕЗКОЕ ДВИЖЕНИЕ! | {formatted_symbol} | Bitget\n"
+                                        f"🚨 РЕЗКОЕ ДВИЖЕНИЕ! | {formatted_symbol} | Kraken\n"
                                         f"ℹ️ Движение: {round(current_move, 2)}% превысило порог {move_threshold}%!\n"
                                         f"=============================================="
                                     )
-                                    logger.warning((f"РЕЗКОЕ ДВИЖЕНИЕ! | {formatted_symbol} | Bitget | "
+                                    logger.warning((f"РЕЗКОЕ ДВИЖЕНИЕ! | {formatted_symbol} | Kraken | "
                                         f"Движение: {round(current_move, 2)}% превысило порог {move_threshold}%!"))
                                     await self.send_message(text=text, tg_id=tg_id)
                                     move_alert_sent_for_current_candle = True
                                 
                         elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
-                            logger.error("WS соединение закрыто биржей Bitget... Переподключение")
+                            logger.error("WS соединение закрыто биржей Kraken... Переподключение")
                             break
                             
             except Exception as e:
-                logger.error(f"Обрыв соединения с WS Bitget: {e}. Реконнект через 5 сек...")
+                logger.error(f"Обрыв соединения с WS Kraken: {e}. Реконнект через 5 сек...")
                 await asyncio.sleep(5)

@@ -1,0 +1,105 @@
+import logging
+import aiohttp
+
+from config import PROXY
+from models.models import RestOrderBook, RestCandle
+
+logger = logging.getLogger(__name__)
+
+class BitgetRest:
+    """Данный класс отвечает за REST запросы на Bitget API"""
+
+    REST_URL_DEPTH = "https://api.bitget.com/api/v2/spot/market/orderbook"    
+    REST_URL_KLINES = "https://api.bitget.com/api/v2/spot/market/candles"
+
+    def __init__(self, session: aiohttp.ClientSession):
+        self._session = session
+        self.__proxy = {
+            "http": PROXY
+        }
+
+    async def get_spot_order_book(self, symbol: str, limit: int = 150) -> RestOrderBook | None:
+        """
+            Получает стакан для указанной пары на Bitget \n
+            Формат пары слитный (BTCUSDT) \n
+            limit: кол-во уровней стакана
+        """
+        url = self.REST_URL_DEPTH
+        
+        params = {
+            "symbol": symbol.upper(),
+            "type": "step0", 
+            "limit": limit
+        }
+
+        try:
+            async with self._session.get(url=url, params=params, proxy=self.__proxy["http"]) as response:
+                if response.status == 200:
+                    res = await response.json()
+                    
+                    if res.get("code") == "00000":
+                        data = res.get("data", {})
+                        logger.info(f"Успешно получен стакан (Bitget) по {symbol}; limit: {limit}")
+                        return RestOrderBook(
+                            bids=data.get("bids", []),
+                            asks=data.get("asks", [])
+                        )
+                    else:
+                        logger.error(f"Ошибка API Bitget (стакан): {res.get('msg')}")
+                        return None
+                else:
+                    error_msg = await response.text()
+                    logger.error(f"HTTP Ошибка Bitget (стакан): {response.status} - {error_msg}")
+                    return None
+        except Exception as e:
+            logger.error(f"Ошибка соединения с Bitget (стакан): {e}")
+            return None
+
+    async def get_spot_candles(self, symbol: str, interval: str = "5m", limit: int = 24) -> list[RestCandle] | None:
+        """
+            Получает свечи для указанной пары на Bitget \n
+            limit: кол-во свечек
+        """
+        url = self.REST_URL_KLINES
+        
+        rest_interval_map = {
+            "1m": "1min", "5m": "5min", "15m": "15min", 
+            "30m": "30min", "1h": "1h", "4h": "4h", "1d": "1day"
+        }
+        bitget_granularity = rest_interval_map.get(interval, "5min")
+
+        params = {
+            "symbol": symbol.upper(),
+            "granularity": bitget_granularity,
+            "limit": limit
+        }
+
+        try:
+            async with self._session.get(url=url, params=params, proxy=self.__proxy["http"]) as response:
+                if response.status == 200:
+                    res = await response.json()
+                    
+                    if res.get("code") == "00000":
+                        data = res.get("data", [])
+                        logger.info(f"Успешно получены свечи (Bitget) по {symbol}; interval: {interval}; limit: {limit}")
+                        
+                        return [
+                            RestCandle(
+                                open_price=float(item[1]),
+                                high_price=float(item[2]),
+                                low_price=float(item[3]),
+                                close_price=float(item[4]),
+                                volume=float(item[6]) 
+                            ) for item in data
+                        ]
+                    else:
+                        logger.error(f"Ошибка API Bitget (свечи): {res.get('msg')}")
+                        return None
+                else:
+                    error_msg = await response.text()
+                    logger.error(f"HTTP Ошибка Bitget (свечи): {response.status} - {error_msg}")
+                    return None
+        except Exception as e:
+            logger.error(f"Ошибка соединения с Bitget (свечи): {e}")
+            return None
+        

@@ -1,6 +1,5 @@
 import aiohttp
 import logging
-import asyncio
 from datetime import datetime, timezone, timedelta
 
 from models.models import RestOrderBook, RestCandle
@@ -32,7 +31,7 @@ class BinanceRest:
             'http': PROXY,
         }
 
-    async def get_spot_order_book(self, symbol: str, limit: int = 1000) -> RestOrderBook:
+    async def get_spot_order_book(self, symbol: str, limit: int = 1000) -> RestOrderBook | None:
         """
             Получает стакан для указанной пары \n
             limit: количество уровней стакана. Допустимые значения: 5, 10, 20, 50, 100, 500, 1000, 5000
@@ -48,7 +47,7 @@ class BinanceRest:
             async with self._session.get(url=url, params=params, proxy=self.__proxy["http"]) as response:
                 if response.status == 200:
                     data = await response.json()
-                    logger.info(f"Успешно получен стакан по {symbol}; limit: {limit}")
+                    logger.info(f"Успешно получен стакан (Binance) по {symbol}; limit: {limit}")
                     return RestOrderBook(
                         bids=data["bids"],
                         asks=data["asks"]
@@ -61,7 +60,7 @@ class BinanceRest:
             logger.error(f"Ошибка соединения с Binance (стакан): {e}")
             return None
 
-    async def get_spot_candles(self, symbol: str, interval: str = 5, limit: int = 24) -> list[RestCandle]:
+    async def get_spot_candles(self, symbol: str, interval: str = "5m", limit: int = 24) -> list[RestCandle] | None:
         """
             Получает свечи для указанной пары \n
                 interval: '1m', '3m', '5m', '15m', '30m', '1h' и тд \n
@@ -79,7 +78,7 @@ class BinanceRest:
             async with self._session.get(url=url, params=params, proxy=self.__proxy["http"]) as response:
                 if response.status == 200:
                     data = await response.json()
-                    logger.info(f"Успешно получены свечи по {symbol}; interval: {interval}; limit: {limit}")
+                    logger.info(f"Успешно получены свечи (Binance) по {symbol}; interval: {interval}; limit: {limit}")
                     return [
                         RestCandle(
                             open_price=float(item[1]),

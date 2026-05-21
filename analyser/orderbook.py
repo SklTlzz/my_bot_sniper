@@ -1,6 +1,7 @@
 import numpy as np
 
 from models.models import RestOrderBook
+from config import DIST_TO_DENSITY
 
 
 class Analyser:
@@ -22,8 +23,8 @@ class Analyser:
         bids[:, 1] = bids_prices * bids[:, 1]
 
         current_price = (asks[0, 0] + bids[0, 0]) / 2
-        mask_asks = (abs(asks_prices - current_price) / current_price) * 100 <= 4.0
-        mask_bids = (abs(bids_prices - current_price) / current_price) * 100 <= 4.0
+        mask_asks = (abs(asks_prices - current_price) / current_price) * 100 <= DIST_TO_DENSITY
+        mask_bids = (abs(bids_prices - current_price) / current_price) * 100 <= DIST_TO_DENSITY
 
         asks_filtered = asks[mask_asks]
         bids_filtered = bids[mask_bids]

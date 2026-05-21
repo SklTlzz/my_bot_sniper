@@ -1,11 +1,12 @@
 import logging
 from aiogram import Bot
 import asyncio
+import time
 
 from db.alerts_db import AlertsDatabase
 from analyser.orderbook import Analyser
 from models.models import RestCandle, RestOrderBook
-from config import MOVE_THRESHOLD, INTERVAL, COUNT_CANDLES, ORDERBOOK_VOLUME_THRESHOLD
+from config import MOVE_THRESHOLD, INTERVAL, COUNT_CANDLES, ORDERBOOK_VOLUME_THRESHOLD, TIME_TO_NEXT_ORDERBOOK_ALERT
 
 
 logger = logging.getLogger(__name__)
@@ -69,6 +70,7 @@ class Tracker:
 
     async def prepare_orderbooks(self, orderbook: RestOrderBook, rest_client, tg_id: int, token: str, exchange: str):
         current_anomals = []
+        last_alert_time = 0
 
         while True:
             if orderbook is None:
@@ -81,7 +83,7 @@ class Tracker:
             buy_tuple = (tg_id, exchange, token, "покупка")
             sell_tuple = (tg_id, exchange, token, "продажа")
 
-            if data["asks"] and sell_tuple not in current_anomals:
+            if data["asks"] and sell_tuple not in current_anomals and (time.time() - last_alert_time > TIME_TO_NEXT_ORDERBOOK_ALERT):
                 text = (
                     f"==============================================\n"
                     f"🔽 Найдена плотность на ПРОДАЖУ! Токен: {token} | Биржа: {exchange}\n\n"
@@ -97,7 +99,8 @@ class Tracker:
                 await self.send_message(text=text, tg_id=tg_id)
 
                 current_anomals.append(sell_tuple)
-            if data["bids"] and buy_tuple not in current_anomals:
+                last_alert_time = time.time()
+            if data["bids"] and buy_tuple not in current_anomals and (time.time() - last_alert_time > TIME_TO_NEXT_ORDERBOOK_ALERT):
                 text = (
                     f"==============================================\n"
                     f"🔼 Найдена плотность на ПОКУПКУ! Токен: {token} | Биржа: {exchange}\n\n"
@@ -113,6 +116,7 @@ class Tracker:
                 await self.send_message(text=text, tg_id=tg_id)
 
                 current_anomals.append(buy_tuple)
+                last_alert_time = time.time()
 
             if data["asks"] and not data["bids"]:
                 if buy_tuple in current_anomals:

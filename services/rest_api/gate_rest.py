@@ -60,8 +60,10 @@ class GateRest:
         """
         url = self.REST_URL_KLINES
 
+        formatted_symbol = symbol.upper()[:-4] + "_" + symbol.upper()[-4:]
+
         params = {
-            "currency_pair": symbol.upper(),
+            "currency_pair": formatted_symbol,
             "interval": interval,
             "limit": limit
         }

@@ -55,7 +55,8 @@ async def cmd_add(message: Message, db: Database, command: CommandObject, alerts
     user_id = message.from_user.id
     
     if user_id in users_list:
-        available_exchanges = ["bingx", "bitget", "binance", "mexc", "okx", "gate", "bybit"]
+        available_exchanges = ["bingx", "bitget", "binance", "mexc", "okx", "gate", "bybit", "kucoin", "kraken"]
+
         
         if command.args:
             params = [i.strip().lower() for i in command.args.split("-")]
@@ -88,7 +89,7 @@ async def cmd_del(message: Message, db: Database, command: CommandObject, alerts
     user_id = message.from_user.id
     
     if user_id in users_list:
-        available_exchanges = ["bingx", "bitget", "binance", "mexc", "okx", "gate", "bybit"]
+        available_exchanges = ["bingx", "bitget", "binance", "mexc", "okx", "gate", "bybit", "kucoin", "kraken"]
         
         if command.args:
             params = [i.strip().lower() for i in command.args.split("-")]

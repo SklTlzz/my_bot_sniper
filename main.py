@@ -8,7 +8,7 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from config import BOT_TOKEN, PROXY
+from config import BOT_TOKEN
 from handlers.commands import router as cmds_router
 from handlers.tracker import Tracker
 from db.database import Database
@@ -58,7 +58,7 @@ async def main():
         await alerts_db.delete_all_alerts()
         await alerts_db.create_table()
 
-        tg_session = AiohttpSession(proxy=PROXY)
+        tg_session = AiohttpSession()
 
         bot = Bot(token=BOT_TOKEN, session=tg_session, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
         dp = Dispatcher()

@@ -4,7 +4,7 @@ import logging
 import json
 from aiogram import Bot
 
-from config import PROXY, COEFFICIENT_VOLUME_THRESHOLD
+from config import COEFFICIENT_VOLUME_THRESHOLD
 from models.models import WsCandle
 
 logger = logging.getLogger(__name__)
@@ -17,9 +17,6 @@ class MexcWS:
     def __init__(self, session: aiohttp.ClientSession, bot: Bot):
         self._session = session
         self.bot = bot
-        self.__proxy = {
-            'http': PROXY,
-        }
 
     async def send_message(self, text: str, tg_id: int):
         await self.bot.send_message(chat_id=tg_id, text=text)
@@ -50,7 +47,7 @@ class MexcWS:
         while True:
             try:
                 logger.info(f"Подключаемся к MexcWS {interval} ({mexc_interval}) для {formatted_symbol}")
-                async with self._session.ws_connect(url=url, heartbeat=30, proxy=self.__proxy["http"]) as ws:
+                async with self._session.ws_connect(url=url, heartbeat=30) as ws:
                     
                     await ws.send_json(subscribe_payload)
 

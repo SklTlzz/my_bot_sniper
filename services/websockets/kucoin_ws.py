@@ -5,7 +5,7 @@ import json
 import time
 from aiogram import Bot
 
-from config import PROXY, COEFFICIENT_VOLUME_THRESHOLD
+from config import COEFFICIENT_VOLUME_THRESHOLD
 from models.models import WsCandle
 
 logger = logging.getLogger(__name__)
@@ -18,9 +18,6 @@ class KucoinWS:
     def __init__(self, session: aiohttp.ClientSession, bot: Bot):
         self._session = session
         self.bot = bot
-        self.__proxy = {
-            'http': PROXY,
-        }
 
     async def send_message(self, text: str, tg_id: int):
         await self.bot.send_message(chat_id=tg_id, text=text)
@@ -28,7 +25,7 @@ class KucoinWS:
     async def get_ws_endpoint(self) -> str | None:
         """Получает динамический токен и endpoint для подключения к WS KuCoin"""
         try:
-            async with self._session.post(self.TOKEN_URL, proxy=self.__proxy["http"]) as resp:
+            async with self._session.post(self.TOKEN_URL) as resp:
                 res = await resp.json()
                 if res.get("code") == "200000":
                     token = res["data"]["token"]

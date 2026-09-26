@@ -5,7 +5,7 @@ import json
 from models.models import WsCandle
 from aiogram import Bot
 
-from config import PROXY, COEFFICIENT_VOLUME_THRESHOLD
+from config import COEFFICIENT_VOLUME_THRESHOLD
 
 
 logger = logging.getLogger(__name__)
@@ -18,10 +18,6 @@ class BinanceWS:
     def __init__(self, session: aiohttp.ClientSession, bot: Bot):
         self._session = session
         self.bot = bot
-
-        self.__proxy = {
-            'http': PROXY,
-        }
 
     async def send_message(self, text: str, tg_id: int):
         await self.bot.send_message(chat_id=tg_id, text=text)
@@ -40,7 +36,7 @@ class BinanceWS:
         while True:
             try:
                 logger.info(f"Подключаемся к BinanceWS {interval} для {symbol.upper()} (klines)")
-                async with self._session.ws_connect(url=url, heartbeat=30, proxy=self.__proxy["http"]) as ws:
+                async with self._session.ws_connect(url=url, heartbeat=30) as ws:
                     async for msg in ws:
                         if msg.type == aiohttp.WSMsgType.TEXT:
                             data = json.loads(msg.data)['k']

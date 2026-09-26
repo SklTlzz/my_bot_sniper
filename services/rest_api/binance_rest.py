@@ -3,7 +3,6 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 from models.models import RestOrderBook, RestCandle
-from config import PROXY
 
 
 def msk_time_converter(*args):
@@ -26,10 +25,6 @@ class BinanceRest:
 
     def __init__(self, session: aiohttp.ClientSession):
         self._session = session
-        
-        self.__proxy = {
-            'http': PROXY,
-        }
 
     async def get_spot_order_book(self, symbol: str, limit: int = 1000) -> RestOrderBook | None:
         """
@@ -44,7 +39,7 @@ class BinanceRest:
         }
 
         try:
-            async with self._session.get(url=url, params=params, proxy=self.__proxy["http"]) as response:
+            async with self._session.get(url=url, params=params) as response:
                 if response.status == 200:
                     data = await response.json()
                     logger.info(f"Успешно получен стакан (Binance) по {symbol}; limit: {limit}")
@@ -75,7 +70,7 @@ class BinanceRest:
         }
 
         try:
-            async with self._session.get(url=url, params=params, proxy=self.__proxy["http"]) as response:
+            async with self._session.get(url=url, params=params) as response:
                 if response.status == 200:
                     data = await response.json()
                     logger.info(f"Успешно получены свечи (Binance) по {symbol}; interval: {interval}; limit: {limit}")

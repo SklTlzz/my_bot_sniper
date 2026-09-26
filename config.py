@@ -5,7 +5,6 @@ import os
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-PROXY = os.getenv("PROXY")
 MOVE_THRESHOLD = 2.5
 INTERVAL = "15m"
 COUNT_CANDLES = 8
